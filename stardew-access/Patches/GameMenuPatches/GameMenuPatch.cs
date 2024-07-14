@@ -38,6 +38,8 @@ internal class GameMenuPatch : IPatch
                 });
                 return;
             }
+
+            IClickableMenuPatch.DrawPatch();
         }
         catch (Exception e)
         {

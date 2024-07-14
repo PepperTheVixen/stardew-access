@@ -1,8 +1,6 @@
-using System.Text;
 using HarmonyLib;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using stardew_access.Translation;
+using stardew_access.Features;
 using stardew_access.Utils;
 using StardewValley;
 using StardewValley.Menus;
@@ -14,15 +12,12 @@ internal class IClickableMenuPatch : IPatch
 {
     private static readonly HashSet<Type> SkipMenuTypes =
     [
-        typeof(AdvancedGameOptions),
         typeof(AnimalQueryMenu),
         typeof(Billboard),
         typeof(CarpenterMenu),
-        typeof(CharacterCustomization),
         typeof(ChooseFromIconsMenu),
         typeof(ConfirmationDialog),
-        typeof(CoopMenu),
-        typeof(FarmhandMenu),
+        typeof(DialogueBox),
         typeof(FieldOfficeMenu),
         typeof(ForgeMenu),
         typeof(GeodeMenu),
@@ -43,23 +38,42 @@ internal class IClickableMenuPatch : IPatch
         typeof(SpecialOrdersBoard),
         typeof(StorageContainer),
         typeof(TailoringMenu),
-        typeof(TitleMenu)
-    ];
 
-    private static readonly HashSet<Type> SkipGameMenuPageTypes =
-    [
+        /*********
+        ** Title Menus
+        *********/
+        typeof(TitleMenu),
+        // typeof(AdvancedGameOptions),
+        typeof(CharacterCustomization),
+        typeof(CoopMenu),
+        typeof(FarmhandMenu),
+        typeof(LoadGameMenu),
+
+        /*********
+        ** Game Menu Pages
+        *********/
         typeof(AnimalPage),
         typeof(CollectionsPage),
         typeof(CraftingPage),
         typeof(ExitPage),
         typeof(InventoryPage),
-        typeof(OptionsPage),
         typeof(PowersTab),
         typeof(SkillsPage),
-        typeof(SocialPage)
+        typeof(SocialPage),
+
+
+        /*********
+        ** Custom Menus
+        *********/
+        typeof(TileDataEntryMenu),
     ];
 
+    private static bool justOpened = true;
+
     internal static HashSet<string> ManuallyPatchedCustomMenus = [];
+
+    internal static string? CurrentMenu;
+    internal static bool ManuallyCallingDrawPatch = false;
 
     public void Apply(Harmony harmony)
     {
@@ -69,112 +83,111 @@ internal class IClickableMenuPatch : IPatch
         );
 
         harmony.Patch(
-            original: AccessTools.Method(typeof(IClickableMenu), nameof(IClickableMenu.drawHoverText), new Type[] { typeof(SpriteBatch), typeof(StringBuilder), typeof(SpriteFont), typeof(int), typeof(int), typeof(int), typeof(string), typeof(int), typeof(string[]), typeof(Item), typeof(int), typeof(string), typeof(int), typeof(int), typeof(int), typeof(float), typeof(CraftingRecipe), typeof(IList<Item>) ,typeof(Texture2D), typeof(Rectangle?), typeof(Color?), typeof(Color?), typeof(float), typeof(int), typeof(int)}),
-            postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.DrawHoverTextPatch))
+            original: AccessTools.Method(typeof(IClickableMenu), "draw", new Type[] { typeof(SpriteBatch) }),
+            postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.DrawPatch))
+        );
+
+        harmony.Patch(
+            original: AccessTools.Method(typeof(IClickableMenu), "draw", new Type[] { typeof(SpriteBatch), typeof(int), typeof(int), typeof(int) }),
+            postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.DrawPatch))
         );
     }
 
-    private static void DrawHoverTextPatch(StringBuilder text,
-                                           int moneyAmountToDisplayAtBottom = -1,
-                                           string? boldTitleText = null,
-                                           string? extraItemToShowIndex = null,
-                                           int extraItemToShowAmount = -1,
-                                           string[]? buffIconsToDisplay = null,
-                                           Item? hoveredItem = null,
-                                           CraftingRecipe? craftingIngredients = null)
+    public static void DrawPatch()
     {
         try
         {
             // The only case when the active menu is null (in vanilla stardew) is when a hud message with no icon is displayed.
             if (Game1.activeClickableMenu is null) return;
 
-            if (text == null || text.Length == 0) return;
-            if (string.IsNullOrWhiteSpace(text.ToString())) return;
+            var activeMenu = GetActiveMenu();
+            if (activeMenu is null) return;
 
-            #region Skip narrating hover info for manually patched custom menus
+            // FIXME For some reason custom mod menus don't trigger this patch, even though they implement IClickableMenu,
+            // the following method essentially detects if the active menu hasn't triggered this method
+            // and then manually calls it from ModEntry::OnUpdateTicked
+            if (!ManuallyCallingDrawPatch) CurrentMenu = activeMenu.GetType()?.FullName;
+            else ManuallyCallingDrawPatch = false;
 
-            if (Game1.activeClickableMenu != null)
-            {
-                foreach (var fullNameOfCustomMenu in ManuallyPatchedCustomMenus)
-                {
-                    if (Game1.activeClickableMenu.GetType().FullName == fullNameOfCustomMenu)
-                        return;
-                }
-            }
-
-            #endregion
-
-            #region Skip narrating hover text for certain menus
-            var activeClickableMenu = Game1.activeClickableMenu?.GetType();
-            var activeGameMenuPage = Game1.activeClickableMenu is GameMenu gameMenu ? gameMenu.GetCurrentPage().GetType() : null;
-            // Check both sets as game menu pages can sometimes be stand alone menus
-            // E.G. CraftingPage is stand alone menu at stove.
-            if (activeClickableMenu is not null && (SkipMenuTypes.Contains(activeClickableMenu) || SkipGameMenuPageTypes.Contains(activeClickableMenu)))
+            var activeMenuType = activeMenu.GetType();
+            if (activeMenuType is not null
+                    && (SkipMenuTypes.Contains(activeMenuType) || ManuallyPatchedCustomMenus.Contains(activeMenuType.FullName ?? "")))
             {
                 return;
             }
 
-            if (Game1.activeClickableMenu is TitleMenu titleMenu && TitleMenu.subMenu is not CharacterCustomization)
+#if DEBUG
+            if (justOpened)
             {
-                return;
+                justOpened = false;
+                Log.Debug($"[IClickableMenuPatch.DrawPatch] Attempting to patch menu {{ManuallyCalled:{ManuallyCallingDrawPatch}}}: {activeMenuType?.FullName}");
             }
+#endif
 
-            if (activeGameMenuPage != null && (SkipGameMenuPageTypes.Contains(activeGameMenuPage)))
+            if (activeMenu.currentlySnappedComponent == null || string.IsNullOrWhiteSpace(activeMenu!.currentlySnappedComponent.ScreenReaderText))
             {
-                return;
-            }
-            #endregion
-
-            string toSpeak = "";
-
-            if (hoveredItem != null)
-            {
-                toSpeak = InventoryUtils.GetItemDetails(hoveredItem,
-                                                        hoverPrice: moneyAmountToDisplayAtBottom,
-                                                        extraItemToShowIndex: extraItemToShowIndex,
-                                                        extraItemToShowAmount: extraItemToShowAmount,
-                                                        customBuffs: buffIconsToDisplay);
-                toSpeak += (craftingIngredients is not null)
-                    ? $", {InventoryUtils.GetIngredientsFromRecipe(craftingIngredients)}"
-                    : "";
+                if (OptionsElementUtils.NarrateOptionSlotsInMenuUsingReflection(activeMenu))
+                    return;
             }
             else
             {
-                if (!string.IsNullOrEmpty(boldTitleText))
-                    toSpeak = $"{boldTitleText}, ";
-
-                if (text.ToString() == "???")
-                    toSpeak = Translator.Instance.Translate("common-unknown");
-                else
-                    toSpeak += text;
+                ClickableComponentUtils.NarrateComponent(activeMenu.currentlySnappedComponent);
+                return;
             }
 
-            // To prevent it from getting conflicted by two hover texts at the same time, two separate methods are used.
-            // For example, sometimes `Welcome to Pierre's` and the items in seeds shop get conflicted causing it to speak infinitely.
+            ClickableComponentUtils.NarrateHoveredComponentFromList(activeMenu.allClickableComponents);
 
-            if (string.IsNullOrWhiteSpace(toSpeak)) return;
+            /*********
+            ** TODO:
+            ** 1. Speak hovered text and/or item when all other methods fail
+            ** 2. Use reflection on menu to speak common ui elements
+            *********/
 
-            if (Game1.activeClickableMenu is not null)
-                MainClass.ScreenReader.SayWithMenuChecker(toSpeak, true); // Menu Checker
-            else
-                MainClass.ScreenReader.SayWithChecker(toSpeak, true); // Normal Checker
         }
         catch (Exception e)
         {
-            Log.Error($"An error occurred in draw hover text patch:\n{e.StackTrace}\n{e.Message}");
+            Log.Error($"[IClickableMenuPatch.DrawPatch] An error occurred in draw patch:\n{e.StackTrace}\n{e.Message}");
         }
+    }
+
+    private static IClickableMenu? GetActiveMenu()
+    {
+        var activeMenu = Game1.activeClickableMenu;
+
+        if (activeMenu.GetParentMenu() != null)
+        {
+            // To let the parent menu's draw() call set `activeMenu` to the child menu, in the next if condition.
+            return null;
+        }
+
+        if (activeMenu.GetChildMenu() != null && activeMenu.GetChildMenu().IsActive())
+        {
+            activeMenu = activeMenu.GetChildMenu();
+        }
+
+        if (activeMenu is TitleMenu titleMenu && TitleMenu.subMenu != null)
+        {
+            return TitleMenu.subMenu;
+        }
+
+        if (activeMenu is GameMenu gameMenu)
+        {
+            return gameMenu.GetCurrentPage();
+        }
+
+        return activeMenu;
     }
 
     private static void ExitThisMenuPatch(IClickableMenu __instance)
     {
         try
         {
-            Log.Verbose($"IClickableMenuPatch.ExitThisMenuPatch: Closed {__instance.GetType()} menu, performing cleanup...");
+            Log.Verbose($"[IClickableMenuPatch.ExitThisMenuPatch] Closed {__instance.GetType().FullName} menu, performing cleanup...");
             Cleanup(__instance);
         }
         catch (Exception e)
         {
-            Log.Error($"An error occurred in exit this menu patch:\n{e.Message}\n{e.StackTrace}");
+            Log.Error($"[IClickableMenuPatch.ExitThisMenuPatch] An error occurred in exit this menu patch:\n{e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -223,5 +236,8 @@ internal class IClickableMenuPatch : IPatch
         MainClass.ScreenReader.Cleanup();
         InventoryUtils.Cleanup();
         TextBoxPatch.activeTextBoxes = "";
+        CurrentMenu = null;
+        ManuallyCallingDrawPatch = false;
+        justOpened = true;
     }
 }

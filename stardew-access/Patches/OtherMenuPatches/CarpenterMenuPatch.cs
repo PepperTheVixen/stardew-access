@@ -86,13 +86,13 @@ internal class CarpenterMenuPatch : IPatch
             }
             else
             {
-                if (__instance.demolishing)
+                if (__instance.Action is CarpenterMenu.CarpentryAction.Demolish)
                     isDemolishing = true;
-                else if (__instance.upgrading)
+                else if (__instance.Action is CarpenterMenu.CarpentryAction.Upgrade)
                     isUpgrading = true;
-                else if (__instance.painting)
+                else if (__instance.Action is CarpenterMenu.CarpentryAction.Paint)
                     isPainting = true;
-                else if (__instance.moving)
+                else if (__instance.Action is CarpenterMenu.CarpentryAction.Move)
                     isMoving = true;
                 else
                     isConstructing = true;

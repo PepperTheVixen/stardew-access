@@ -265,6 +265,7 @@ namespace stardew_access
                 return;
             }
             
+            Log.Debug($"Added `{fullNameOfClass}` to the list of maually patched custom menus.");
             IClickableMenuPatch.ManuallyPatchedCustomMenus.Add(fullNameOfClass);
         }
 

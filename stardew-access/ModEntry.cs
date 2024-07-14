@@ -147,6 +147,12 @@ public class MainClass : Mod
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
+        if (Game1.activeClickableMenu != null && IClickableMenuPatch.CurrentMenu is null)
+        {
+            IClickableMenuPatch.ManuallyCallingDrawPatch = true;
+            IClickableMenuPatch.DrawPatch();
+        }
+
         TileManager.EnsureLocationLoaded(Game1.currentLocation);
         
         // The event with id 13 is the Haley's six heart event, the one at the beach requiring the player to find the bracelet

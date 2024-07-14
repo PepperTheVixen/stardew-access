@@ -18,8 +18,9 @@ internal class OptionsPagePatch :IPatch
     {
         try
         {
+            return;
             int currentItemIndex = Math.Max(0, Math.Min(__instance.options.Count - 7, __instance.currentItemIndex));
-            OptionsElementUtils.NarrateOptionsElementSlots(__instance.optionSlots, __instance.options, currentItemIndex);
+            OptionsElementUtils.NarrateHoveredElementFromSlots(__instance.optionSlots, __instance.options, currentItemIndex);
         }
         catch (Exception e)
         {

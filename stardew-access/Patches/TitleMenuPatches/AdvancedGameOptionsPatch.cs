@@ -1,6 +1,6 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
-using stardew_access.Utils;
+using stardew_access.Translation;
 using StardewValley;
 using StardewValley.Menus;
 
@@ -49,8 +49,7 @@ internal class AdvancedGameOptionsPatch : IPatch
         }
         catch (Exception e)
         {
-            Log.Error(
-                $"An error occurred in advanced game menu patch [ReceiveLeftClickPatch]:\n{e.Message}\n{e.StackTrace}");
+            Log.Error( $"An error occurred in advanced game menu patch [ReceiveLeftClickPatch]:\n{e.Message}\n{e.StackTrace}");
         }
 
         return true;
@@ -60,17 +59,7 @@ internal class AdvancedGameOptionsPatch : IPatch
     {
         try
         {
-            int currentItemIndex = Math.Max(0, Math.Min(__instance.options.Count - 7, __instance.currentItemIndex));
-            int x = Game1.getMouseX(true), y = Game1.getMouseY(true);
-
-            if (__instance.okButton != null && __instance.okButton.containsPoint(x, y))
-            {
-                MainClass.ScreenReader.TranslateAndSayWithMenuChecker("common-ui-ok_button", true);
-                return;
-            }
-
-            OptionsElementUtils.NarrateOptionsElementSlots(__instance.optionSlots, __instance.options,
-                currentItemIndex);
+            __instance.okButton.ScreenReaderText = Translator.Instance.Translate("common-ui-ok_button", TranslationCategory.Menu);
         }
         catch (Exception e)
         {

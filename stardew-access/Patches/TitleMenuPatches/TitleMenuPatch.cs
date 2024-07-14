@@ -84,6 +84,8 @@ internal class TitleMenuPatch : IPatch
 
             if (!string.IsNullOrEmpty(translationKey))
                 MainClass.ScreenReader.TranslateAndSayWithMenuChecker(translationKey, true, translationTokens);
+
+            IClickableMenuPatch.DrawPatch();
         }
         catch (Exception e)
         {

@@ -438,7 +438,9 @@ public class TileDataEntryMenu : IClickableMenu
             return;
         }
 
-        OptionsElementUtils.NarrateOptionsElements(_options);
+        OptionsElementUtils.NarrateHoveredElementFromList(_options);
+
+        base.update(time);
     }
 
     public override void draw(SpriteBatch b)
@@ -452,6 +454,8 @@ public class TileDataEntryMenu : IClickableMenu
         _okButton.draw(b);
 
         drawMouse(b);
+
+        base.draw(b);
     }
 
     private static string FarmTypeId(int whichFarm) => whichFarm switch
