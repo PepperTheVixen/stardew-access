@@ -7,12 +7,14 @@ namespace stardew_access.Utils;
 
 internal static class OptionsElementUtils
 {
-    internal static bool NarrateOptionSlotsInMenuUsingReflection(IClickableMenu activeMenu)
+    internal static bool NarrateOptionSlotsInMenuUsingReflection(IClickableMenu menu)
     {
-        var fields = activeMenu.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+        if (menu is null) return false;
+
+        var fields = menu.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
 
         var optionElementsLists = fields.Where(fi => fi.FieldType == typeof(List<OptionsElement>))
-                                        .Select(f => f.GetValue(activeMenu)).Cast<List<OptionsElement>>();
+                                        .Select(f => f.GetValue(menu)).Cast<List<OptionsElement>>();
 
         if (optionElementsLists.Count() == 0)
         {
@@ -23,12 +25,12 @@ internal static class OptionsElementUtils
         if (optionSlotsEnumerable.Count() == 0)
         {
 #if DEBUG
-            Log.Debug($"[{activeMenu.GetType().FullName}] A field with `List<OptionsElement>` found but not a field with name `optionSlots` and type `List<ClickableComponent>`.", once: true);
+            Log.Debug($"[OptionsElementUtils] ({menu.GetType().FullName}) A field with `List<OptionsElement>` found but not a field with name `optionSlots` and type `List<ClickableComponent>`.", once: true);
 #endif
             return false;
         }
 
-        var optionSlots = optionSlotsEnumerable.Select(f => f.GetValue(activeMenu))
+        var optionSlots = optionSlotsEnumerable.Select(f => f.GetValue(menu))
                                 .Cast<List<ClickableComponent>>()
                                 .First();
 
@@ -36,12 +38,12 @@ internal static class OptionsElementUtils
         if (currentItemIndexEnumerable.Count() == 0)
         {
 #if DEBUG
-            Log.Debug($"[{activeMenu.GetType().FullName}] A field with `List<OptionsElement>` found and a field with name `optionSlots` and type `List<ClickableComponent>`, but not a field with name `currentItemIndex` and type `int`.", once: true);
+            Log.Debug($"[OptionsElementUtils] ({menu.GetType().FullName}) A field with `List<OptionsElement>` found and a field with name `optionSlots` and type `List<ClickableComponent>`, but not a field with name `currentItemIndex` and type `int`.", once: true);
 #endif
             return false;
         }
 
-        int currentItemIndex = currentItemIndexEnumerable.Select(f => f.GetValue(activeMenu))
+        int currentItemIndex = currentItemIndexEnumerable.Select(f => f.GetValue(menu))
                                      .Cast<int>()
                                      .First();
 
@@ -87,12 +89,16 @@ internal static class OptionsElementUtils
     }
 
     internal static void NarrateElement(OptionsElement optionsElement, bool screenReaderInterrupt = true)
-        => MainClass.ScreenReader.SayWithMenuChecker(GetNameOfElement(optionsElement), interrupt: screenReaderInterrupt);
+    {
+        if (optionsElement.ScreenReaderIgnore) return;
+
+        MainClass.ScreenReader.SayWithMenuChecker(GetNameOfElement(optionsElement), interrupt: screenReaderInterrupt);
+    }
 
     internal static string GetNameOfElement(OptionsElement optionsElement)
     {
         string translationKey;
-        string label = optionsElement.label;
+        string label = string.IsNullOrWhiteSpace(optionsElement.ScreenReaderText) ? optionsElement.label : optionsElement.ScreenReaderText;
         object? tokens = new { label };
 
         switch (optionsElement)

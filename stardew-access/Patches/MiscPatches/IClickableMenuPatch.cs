@@ -135,14 +135,20 @@ internal class IClickableMenuPatch : IPatch
                 return;
             }
 
-            ClickableComponentUtils.NarrateHoveredComponentFromList(activeMenu.allClickableComponents);
+            if (ClickableComponentUtils.NarrateHoveredComponentFromList(activeMenu.allClickableComponents))
+            {
+                return;
+            }
 
             /*********
             ** TODO:
             ** 1. Speak hovered text and/or item when all other methods fail
-            ** 2. Use reflection on menu to speak common ui elements
             *********/
 
+            if (ClickableComponentUtils.NarrateHoveredComponentUsingReflectionInMenu(activeMenu))
+            {
+                return;
+            }
         }
         catch (Exception e)
         {
