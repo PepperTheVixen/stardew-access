@@ -4,6 +4,7 @@ using stardew_access.Utils;
 
 namespace stardew_access.ScreenReader;
 
+// TODO Declutter this class
 public class ScreenReaderImpl : IScreenReader
 {
     public string prevText = "", prevTextTile = "", prevChatText = "", prevMenuText = "";

@@ -9,7 +9,7 @@ using StardewValley.Menus;
 
 namespace stardew_access
 {
-    public class API
+    public class API : IStardewAccessApi
     {
         // Note to future self, don't make these static, it won't give errors in sv access but it will in other mods if they try to use the stardew access api.
         //Setting Pragma to disable warning CA1822 prompting to make fields static.
@@ -50,49 +50,18 @@ namespace stardew_access
             set => MainClass.ScreenReader.MenuSuffixNoQueryText = value;
         }
 
-        /// <summary>Speaks the text via the loaded screen reader (if any).</summary>
-        /// <param name="text">The text to be narrated.</param>
-        /// <param name="interrupt">Whether to skip the currently speaking text or not.</param>
-        /// <returns>true if the text was spoken otherwise false.</returns>
         public bool Say(String text, Boolean interrupt)
             => MainClass.ScreenReader.Say(text, interrupt);
 
-        /// <summary>Speaks the text via the loaded screen reader (if any).
-        /// <br/>Skips the text narration if the previously narrated text was the same as the one provided.</summary>
-        /// <param name="text">The text to be narrated.</param>
-        /// <param name="interrupt">Whether to skip the currently speaking text or not.</param>
-        /// <param name="customQuery">If set, uses this instead of <paramref name="text"/> as query to check whether to speak the text or not.</param>
-        /// <returns>true if the text was spoken otherwise false.</returns>
         public bool SayWithChecker(String text, Boolean interrupt, String? customQuery = null)
             => MainClass.ScreenReader.SayWithChecker(text, interrupt, customQuery);
 
-        /// <summary>Speaks the text via the loaded screen reader (if any).
-        /// <br/>Skips the text narration if the previously narrated text was the same as the one provided.
-        /// <br/><br/>Use this when narrating hovered component in menus to avoid interference.</summary>
-        /// <param name="text">The text to be narrated.</param>
-        /// <param name="interrupt">Whether to skip the currently speaking text or not.</param>
-        /// <param name="customQuery">If set, uses this instead of <paramref name="text"/> as query to check whether to speak the text or not.</param>
-        /// <returns>true if the text was spoken otherwise false.</returns>
         public bool SayWithMenuChecker(String text, Boolean interrupt, String? customQuery = null)
             => MainClass.ScreenReader.SayWithMenuChecker(text, interrupt, customQuery);
 
-        /// <summary>Speaks the text via the loaded screen reader (if any).
-        /// <br/>Skips the text narration if the previously narrated text was the same as the one provided.
-        /// <br/><br/>Use this when narrating chat messages to avoid interference.</summary>
-        /// <param name="text">The text to be narrated.</param>
-        /// <param name="interrupt">Whether to skip the currently speaking text or not.</param>
-        /// <returns>true if the text was spoken otherwise false.</returns>
         public bool SayWithChatChecker(String text, Boolean interrupt)
             => MainClass.ScreenReader.SayWithChatChecker(text, interrupt);
 
-        /// <summary>Speaks the text via the loaded screen reader (if any).
-        /// <br/>Skips the text narration if the previously narrated text was the same as the one provided.
-        /// <br/><br/>Use this when narrating texts based on tile position to avoid interference.</summary>
-        /// <param name="text">The text to be narrated.</param>
-        /// <param name="x">The X location of tile.</param>
-        /// <param name="y">The Y location of tile.</param>
-        /// <param name="interrupt">Whether to skip the currently speaking text or not.</param>
-        /// <returns>true if the text was spoken otherwise false.</returns>
         public bool SayWithTileQuery(String text, int x, int y, Boolean interrupt)
             => MainClass.ScreenReader.SayWithTileQuery(text, x, y, interrupt);
 
@@ -100,60 +69,21 @@ namespace stardew_access
 
         #region Tiles related
 
-        /// <summary>
-        /// Search the area using Breadth First Search algorithm(BFS).
-        /// </summary>
-        /// <param name="center">The starting point.</param>
-        /// <param name="limit">The limiting factor or simply radius of the search area.</param>
-        /// <returns>A dictionary with all the detected tiles along with the name of the object on it and it's category.</returns>
-        public Dictionary<Vector2, (string name, string category)> SearchNearbyTiles(
-            Vector2 center,
-            int limit
-        ) => new Radar().SearchNearbyTiles(center, limit, false);
+        public Dictionary<Vector2, (string name, string category)> SearchNearbyTiles(Vector2 center, int limit)
+            => new Radar().SearchNearbyTiles(center, limit, false);
 
-        /// <summary>
-        /// Search the entire location using Breadth First Search algorithm(BFS).
-        /// </summary>
-        /// <returns>A dictionary with all the detected tiles along with the name of the object on it and it's category.</returns>
-        public Dictionary<Vector2, (string name, string category)> SearchLocation() => Radar.SearchLocation();
+        public Dictionary<Vector2, (string name, string category)> SearchLocation()
+            => Radar.SearchLocation();
 
-        /// <summary>
-        /// Check the tile for any object
-        /// </summary>
-        /// <param name="tile">The tile where we want to check the name and category of object if any</param>
-        /// <returns>Name of the object as the first item (name) and category as the second item (category). Returns null if no object found.</returns>
         public (string? name, string? category) GetNameWithCategoryNameAtTile(Vector2 tile)
-        {
-            return TileInfo.GetNameWithCategoryNameAtTile(tile, null);
-        }
+            => TileInfo.GetNameWithCategoryNameAtTile(tile, null);
 
-        /// <summary>
-        /// Check the tile for any object
-        /// </summary>
-        /// <param name="tile">The tile where we want to check the name and category of object if any</param>
-        /// <returns>Name of the object. Returns null if no object found.</returns>
         public string? GetNameAtTile(Vector2 tile) => TileInfo.GetNameAtTile(tile, null);
 
         #endregion
 
         #region Inventory and Item related
 
-        /// <summary>
-        /// (Legacy! Should not be used from v1.6)
-        /// Speaks the hovered inventory slot from the provided <see cref="InventoryMenu"/>.
-        /// In case there is nothing in a slot, then it will speak "Empty Slot".
-        /// Also plays a sound if the slot is grayed out, like tools in <see cref="GeodeMenu">geode menu</see>.
-        /// </summary>
-        /// <param name="inventoryMenu">The object of <see cref="InventoryMenu"/> whose inventory is to be spoken.</param>
-        /// <param name="giveExtraDetails">(Optional) Whether to speak extra details about the item in slot or not. Default to null in which case it uses <see cref="ModConfig.DisableInventoryVerbosity"/> to get whether to speak extra details or not.</param>
-        /// <param name="hoverPrice">(Optional) The price of the hovered item, generally used in <see cref="ShopMenu"/>.</param>
-        /// <param name="extraItemToShowIndex">(Optional) The index (probably parentSheetIndex) of the extra item which is generally a requirement for the hovered item in certain menus.</param>
-        /// <param name="extraItemToShowAmount">(Optional) The amount or quantity of the extra item which is generally a requirement for the hovered item in certain menus.</param>
-        /// <param name="highlightedItemPrefix">(Optional) The prefix to add to the spoken hovered item's details if it is highlighted i.e., not grayed out.</param>
-        /// <param name="highlightedItemSuffix">(Optional) The suffix to add to the spoken hovered item's details if it is highlighted i.e., not grayed out.</param>
-        /// <param name="hoverX">(Optional) The X position on screen to check. Default to null, in which case it uses the mouse's X position.</param>
-        /// <param name="hoverY">(Optional) The Y position on screen to check. Default to null, in which case it uses the mouse's Y position.</param>
-        /// <returns>true if any inventory slot was hovered or found at the <paramref name="hoverX"/> and <paramref name="hoverY"/>.</returns>
         public bool SpeakHoveredInventorySlot(InventoryMenu? inventoryMenu,
             bool? giveExtraDetails = null,
             int hoverPrice = -1,
@@ -173,21 +103,6 @@ namespace stardew_access
                 hoverX,
                 hoverY);
 
-        /// <summary>
-        /// Speaks the hovered inventory slot from the provided <see cref="InventoryMenu"/>.
-        /// In case there is nothing in a slot, then it will speak "Empty Slot".
-        /// Also plays a sound if the slot is grayed out, like tools in <see cref="GeodeMenu">geode menu</see>.
-        /// </summary>
-        /// <param name="inventoryMenu">The object of <see cref="InventoryMenu"/> whose inventory is to be spoken.</param>
-        /// <param name="giveExtraDetails">(Optional) Whether to speak extra details about the item in slot or not. Default to null in which case it uses <see cref="ModConfig.DisableInventoryVerbosity"/> to get whether to speak extra details or not.</param>
-        /// <param name="hoverPrice">(Optional) The price of the hovered item, generally used in <see cref="ShopMenu"/>.</param>
-        /// <param name="extraItemToShowIndex">(Optional) The index (probably parentSheetIndex) of the extra item which is generally a requirement for the hovered item in certain menus.</param>
-        /// <param name="extraItemToShowAmount">(Optional) The amount or quantity of the extra item which is generally a requirement for the hovered item in certain menus.</param>
-        /// <param name="highlightedItemPrefix">(Optional) The prefix to add to the spoken hovered item's details if it is highlighted i.e., not grayed out.</param>
-        /// <param name="highlightedItemSuffix">(Optional) The suffix to add to the spoken hovered item's details if it is highlighted i.e., not grayed out.</param>
-        /// <param name="hoverX">(Optional) The X position on screen to check. Default to null, in which case it uses the mouse's X position.</param>
-        /// <param name="hoverY">(Optional) The Y position on screen to check. Default to null, in which case it uses the mouse's Y position.</param>
-        /// <returns>true if any inventory slot was hovered or found at the <paramref name="hoverX"/> and <paramref name="hoverY"/>.</returns>
         public bool SpeakHoveredInventorySlot(InventoryMenu? inventoryMenu,
             bool? giveExtraDetails = null,
             int hoverPrice = -1,
@@ -207,15 +122,6 @@ namespace stardew_access
                 hoverX,
                 hoverY);
 
-        /// <summary>
-        /// Get the details (name, description, quality, etc.) of an <see cref="Item"/>.
-        /// </summary>
-        /// <param name="item">The <see cref="Item"/>'s object that we want to get details of.</param>
-        /// <param name="giveExtraDetails">(Optional) Whether to also return extra details or not. These include: description, health, stamina and other buffs.</param>
-        /// <param name="price">(Optional) Generally the selling price of the item.</param>
-        /// <param name="extraItemToShowIndex">(Optional) The index of the extra item which is generally the required item for the given item.</param>
-        /// <param name="extraItemToShowAmount">(Optional) The amount or quantity of the extra item.</param>
-        /// <returns>The details of the given <paramref name="item"/>.</returns>
         public string GetDetailsOfItem(Item item,
             bool giveExtraDetails = false,
             int price = -1,
@@ -227,16 +133,6 @@ namespace stardew_access
                 extraItemToShowIndex: extraItemToShowIndex,
                 extraItemToShowAmount: extraItemToShowAmount);
 
-        /// <summary>
-        /// (Legacy! Should not be used from v1.6)
-        /// Get the details (name, description, quality, etc.) of an <see cref="Item"/>.
-        /// </summary>
-        /// <param name="item">The <see cref="Item"/>'s object that we want to get details of.</param>
-        /// <param name="giveExtraDetails">(Optional) Whether to also return extra details or not. These include: description, health, stamina and other buffs.</param>
-        /// <param name="price">(Optional) Generally the selling price of the item.</param>
-        /// <param name="extraItemToShowIndex">(Optional) The index of the extra item which is generally the required item for the given item.</param>
-        /// <param name="extraItemToShowAmount">(Optional) The amount or quantity of the extra item.</param>
-        /// <returns>The details of the given <paramref name="item"/>.</returns>
         public string GetDetailsOfItem(Item item,
             bool giveExtraDetails = false,
             int price = -1,
@@ -250,68 +146,21 @@ namespace stardew_access
 
         #endregion
 
-        /// <summary>
-        /// Speaks the contents of hovered clickable component from the list.
-        /// Prioritizes speaking from <see cref="ClickableComponent.ScreenReaderText"/> and <see cref="ClickableComponent.ScreenReaderDescription"/>
-        /// and if these are empty, speaks the <see cref="ClickableComponent.name"/> and <see cref="ClickableComponent.label"/> as fallback.
-        /// </summary>
-        /// <param name="ccList">The list of components to speak from.</param>
-        /// <returns>returns true if a hovered component was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="ClickableComponent.ScreenReaderIgnore"/> was true for the hovered component.</returns>
         public bool SpeakHoveredClickableComponentsFromList<T>(List<T> ccList) where T : ClickableComponent
             => ClickableComponentUtils.NarrateHoveredComponentFromList(ccList);
 
-        /// <summary>
-        /// Speaks the contents of the given clickable component.
-        /// Prioritizes speaking from <see cref="ClickableComponent.ScreenReaderText"/> and <see cref="ClickableComponent.ScreenReaderDescription"/>
-        /// and if these are empty, speaks the <see cref="ClickableComponent.name"/> and <see cref="ClickableComponent.label"/> as fallback.
-        /// Ignores speaking if <see cref="ClickableComponent.ScreenReaderIgnore"/> was set to true.
-        /// </summary>
-        /// <param name="component">The component to speak.</param>
         public void SpeakClickableComponent(ClickableComponent component)
             => ClickableComponentUtils.NarrateComponent(component);
 
-        /// <summary>
-        /// Speaks the hovered element from list which are being drawn/rendered in slots.
-        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
-        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
-        /// </summary>
-        /// <param name="optionSlots">The slots where the elements will be drawn/rendered.</param>
-        /// <param name="options">The list of elements.</param>
-        /// <param name="currentItemIndex">The index of the element currently being rendered in the first slot.</param>
-        /// <returns>returns true if a hovered element was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="OptionsElement.ScreenReaderIgnore"/> was true for the hovered component.</returns>
         public bool SpeakHoveredOptionsElementSlot(List<ClickableComponent> optionSlots, List<OptionsElement> options, int currentItemIndex)
             => OptionsElementUtils.NarrateHoveredElementFromSlots(optionSlots, options, currentItemIndex);
 
-        /// <summary>
-        /// Speaks the hovered element from <paramref name="options"/>.
-        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
-        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
-        /// </summary>
-        /// <remarks>
-        /// Only use this when element are being drawn independently from slots or when the element's position is correctly reflected in <see cref="OptionsElement.bounds"/>.
-        /// </remarks>
-        /// <param name="options">The list of elements.</param>
-        /// <returns>returns true if a hovered element was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="OptionsElement.ScreenReaderIgnore"/> was true for the hovered component.</returns>
         public bool SpeakHoveredOptionsElementFromList<T>(List<T> options) where T : OptionsElement
             => OptionsElementUtils.NarrateHoveredElementFromList(options);
 
-        /// <summary>
-        /// Speaks the component of the given options element.
-        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
-        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
-        /// Ignores speaking if <see cref="OptionsElement.ScreenReaderIgnore"/> was set to true.
-        /// </summary>
-        /// <param name="element">The element to speak.</param>
         public void SPeakOptionsElement(OptionsElement element)
             => OptionsElementUtils.NarrateElement(element);
 
-        /// <summary>
-        /// Necessary to be called once if you have manually made a custom menu of your mod accessible.
-        /// This will skip stardew access' patch that speaks the hover info in that menu.
-        /// </summary>
-        /// <param name="fullNameOfClass">The full name of the menu's class.
-        /// <example>typeof(MyCustomMenu).FullName</example>
-        /// </param>
         public void RegisterCustomMenuAsAccessible(string? fullNameOfClass)
         {
             if (string.IsNullOrWhiteSpace(fullNameOfClass))
@@ -324,14 +173,6 @@ namespace stardew_access
             IClickableMenuPatch.ManuallyPatchedCustomMenus.Add(fullNameOfClass);
         }
 
-        /// <summary>
-        /// Registers a language helper to be used for a specific locale.
-        /// </summary>
-        /// <param name="locale">The locale for which the helper should be used (e.g., "en", "fr", "es-es").</param>
-        /// <param name="helper">An instance of the language helper class implementing <see cref="ILanguageHelper"/>.</param>
-        /// <remarks>
-        /// The provided helper class should ideally derive from <see cref="LanguageHelperBase"/> for optimal compatibility, though this is not strictly required as long as it implements <see cref="ILanguageHelper"/>.
-        /// </remarks>
         public void RegisterLanguageHelper(string locale, Type helperType)
         {
 #if DEBUG
