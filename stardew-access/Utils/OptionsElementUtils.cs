@@ -73,7 +73,7 @@ internal static class OptionsElementUtils
         return false;
     }
 
-    internal static bool NarrateHoveredElementFromList(List<OptionsElement> options)
+    internal static bool NarrateHoveredElementFromList<T>(List<T> options) where T : OptionsElement
     {
         int x = Game1.getMouseX(true), y = Game1.getMouseY(true);
         for (int i = 0; i < options.Count; i++)

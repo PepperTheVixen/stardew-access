@@ -19,7 +19,7 @@ namespace stardew_access
 #pragma warning disable CA1822 // Mark members as static
 
         #region Screen reader related
-        
+
         public string PrevMenuQueryText
         {
             get => MainClass.ScreenReader.PrevMenuQueryText;
@@ -133,7 +133,7 @@ namespace stardew_access
         /// <param name="tile">The tile where we want to check the name and category of object if any</param>
         /// <returns>Name of the object. Returns null if no object found.</returns>
         public string? GetNameAtTile(Vector2 tile) => TileInfo.GetNameAtTile(tile, null);
-        
+
         #endregion
 
         #region Inventory and Item related
@@ -251,6 +251,61 @@ namespace stardew_access
         #endregion
 
         /// <summary>
+        /// Speaks the contents of hovered clickable component from the list.
+        /// Prioritizes speaking from <see cref="ClickableComponent.ScreenReaderText"/> and <see cref="ClickableComponent.ScreenReaderDescription"/>
+        /// and if these are empty, speaks the <see cref="ClickableComponent.name"/> and <see cref="ClickableComponent.label"/> as fallback.
+        /// </summary>
+        /// <param name="ccList">The list of components to speak from.</param>
+        /// <returns>returns true if a hovered component was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="ClickableComponent.ScreenReaderIgnore"/> was true for the hovered component.</returns>
+        public bool SpeakHoveredClickableComponentsFromList<T>(List<T> ccList) where T : ClickableComponent
+            => ClickableComponentUtils.NarrateHoveredComponentFromList(ccList);
+
+        /// <summary>
+        /// Speaks the contents of the given clickable component.
+        /// Prioritizes speaking from <see cref="ClickableComponent.ScreenReaderText"/> and <see cref="ClickableComponent.ScreenReaderDescription"/>
+        /// and if these are empty, speaks the <see cref="ClickableComponent.name"/> and <see cref="ClickableComponent.label"/> as fallback.
+        /// Ignores speaking if <see cref="ClickableComponent.ScreenReaderIgnore"/> was set to true.
+        /// </summary>
+        /// <param name="component">The component to speak.</param>
+        public void SpeakClickableComponent(ClickableComponent component)
+            => ClickableComponentUtils.NarrateComponent(component);
+
+        /// <summary>
+        /// Speaks the hovered element from list which are being drawn/rendered in slots.
+        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
+        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
+        /// </summary>
+        /// <param name="optionSlots">The slots where the elements will be drawn/rendered.</param>
+        /// <param name="options">The list of elements.</param>
+        /// <param name="currentItemIndex">The index of the element currently being rendered in the first slot.</param>
+        /// <returns>returns true if a hovered element was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="OptionsElement.ScreenReaderIgnore"/> was true for the hovered component.</returns>
+        public bool SpeakHoveredOptionsElementSlot(List<ClickableComponent> optionSlots, List<OptionsElement> options, int currentItemIndex)
+            => OptionsElementUtils.NarrateHoveredElementFromSlots(optionSlots, options, currentItemIndex);
+
+        /// <summary>
+        /// Speaks the hovered element from <paramref name="options"/>.
+        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
+        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
+        /// </summary>
+        /// <remarks>
+        /// Only use this when element are being drawn independently from slots or when the element's position is correctly reflected in <see cref="OptionsElement.bounds"/>.
+        /// </remarks>
+        /// <param name="options">The list of elements.</param>
+        /// <returns>returns true if a hovered element was detected, otherwise false. It also returns true if a component was hovered but it's text was not spoken if either the fields were empty or <see cref="OptionsElement.ScreenReaderIgnore"/> was true for the hovered component.</returns>
+        public bool SpeakHoveredOptionsElementFromList<T>(List<T> options) where T : OptionsElement
+            => OptionsElementUtils.NarrateHoveredElementFromList(options);
+
+        /// <summary>
+        /// Speaks the component of the given options element.
+        /// Prioritizes speaking from <see cref="OptionsElement.ScreenReaderText"/> and <see cref="OptionsElement.ScreenReaderDescription"/>
+        /// and if these are empty, speaks the <see cref="OptionsElement.label"/> as fallback.
+        /// Ignores speaking if <see cref="OptionsElement.ScreenReaderIgnore"/> was set to true.
+        /// </summary>
+        /// <param name="element">The element to speak.</param>
+        public void SPeakOptionsElement(OptionsElement element)
+            => OptionsElementUtils.NarrateElement(element);
+
+        /// <summary>
         /// Necessary to be called once if you have manually made a custom menu of your mod accessible.
         /// This will skip stardew access' patch that speaks the hover info in that menu.
         /// </summary>
@@ -264,7 +319,7 @@ namespace stardew_access
                 Log.Error("fullNameOfClass cannot be null or empty!");
                 return;
             }
-            
+
             Log.Debug($"Added `{fullNameOfClass}` to the list of maually patched custom menus.");
             IClickableMenuPatch.ManuallyPatchedCustomMenus.Add(fullNameOfClass);
         }

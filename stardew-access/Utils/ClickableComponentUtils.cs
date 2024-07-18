@@ -69,7 +69,7 @@ internal class ClickableComponentUtils
 
     private static bool IsInstanceOfCC(Type fieldType) => fieldType == typeof(ClickableComponent) || fieldType.IsSubclassOf(typeof(ClickableComponent));
 
-    internal static bool NarrateHoveredComponentFromList(List<ClickableComponent> clickableComponents)
+    internal static bool NarrateHoveredComponentFromList<T>(List<T> clickableComponents) where T: ClickableComponent
     {
         if (clickableComponents == null || clickableComponents.Count == 0) return false;
 
