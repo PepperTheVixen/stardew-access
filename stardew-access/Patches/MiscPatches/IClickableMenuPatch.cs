@@ -1,6 +1,9 @@
+using System.Text;
 using HarmonyLib;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_access.Features;
+using stardew_access.Translation;
 using stardew_access.Utils;
 using StardewValley;
 using StardewValley.Menus;
@@ -68,7 +71,8 @@ internal class IClickableMenuPatch : IPatch
         typeof(TileDataEntryMenu),
     ];
 
-    private static bool justOpened = true;
+    private static bool _justOpened = true;
+    private static bool _tryHoverPatch = false;
 
     internal static HashSet<string> ManuallyPatchedCustomMenus = [];
 
@@ -78,7 +82,7 @@ internal class IClickableMenuPatch : IPatch
     public void Apply(Harmony harmony)
     {
         harmony.Patch(
-                original: AccessTools.Method(typeof(IClickableMenu), nameof(IClickableMenu.exitThisMenu)),
+                original: AccessTools.Method(typeof(IClickableMenu), "exitThisMenu"),
                 postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.ExitThisMenuPatch))
         );
 
@@ -90,6 +94,11 @@ internal class IClickableMenuPatch : IPatch
         harmony.Patch(
             original: AccessTools.Method(typeof(IClickableMenu), "draw", new Type[] { typeof(SpriteBatch), typeof(int), typeof(int), typeof(int) }),
             postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.DrawPatch))
+        );
+
+        harmony.Patch(
+            original: AccessTools.Method(typeof(IClickableMenu), "drawHoverText", new Type[] { typeof(SpriteBatch), typeof(StringBuilder), typeof(SpriteFont), typeof(int), typeof(int), typeof(int), typeof(string), typeof(int), typeof(string[]), typeof(Item), typeof(int), typeof(string), typeof(int), typeof(int), typeof(int), typeof(float), typeof(CraftingRecipe), typeof(IList<Item>) ,typeof(Texture2D), typeof(Rectangle?), typeof(Color?), typeof(Color?), typeof(float), typeof(int), typeof(int)}),
+            postfix: new HarmonyMethod(typeof(IClickableMenuPatch), nameof(IClickableMenuPatch.DrawHoverTextPatch))
         );
     }
 
@@ -117,9 +126,9 @@ internal class IClickableMenuPatch : IPatch
             }
 
 #if DEBUG
-            if (justOpened)
+            if (_justOpened)
             {
-                justOpened = false;
+                _justOpened = false;
                 Log.Debug($"[IClickableMenuPatch.DrawPatch] Attempting to patch menu {{ManuallyCalled:{ManuallyCallingDrawPatch}}}: {activeMenuType?.FullName}");
             }
 #endif
@@ -140,19 +149,16 @@ internal class IClickableMenuPatch : IPatch
                 return;
             }
 
-            /*********
-            ** TODO:
-            ** 1. Speak hovered text and/or item when all other methods fail
-            *********/
-
             if (ClickableComponentUtils.NarrateHoveredComponentUsingReflectionInMenu(activeMenu))
             {
                 return;
             }
+
+            _tryHoverPatch = true;
         }
         catch (Exception e)
         {
-            Log.Error($"[IClickableMenuPatch.DrawPatch] An error occurred in draw patch:\n{e.StackTrace}\n{e.Message}");
+            Log.Error($"[IClickableMenuPatch.DrawPatch]: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -184,6 +190,58 @@ internal class IClickableMenuPatch : IPatch
         return activeMenu;
     }
 
+    private static void DrawHoverTextPatch(StringBuilder text,
+                                           int moneyAmountToDisplayAtBottom = -1,
+                                           string? boldTitleText = null,
+                                           string? extraItemToShowIndex = null,
+                                           int extraItemToShowAmount = -1,
+                                           string[]? buffIconsToDisplay = null,
+                                           Item? hoveredItem = null,
+                                           CraftingRecipe? craftingIngredients = null)
+    {
+        if (!_tryHoverPatch) return;
+
+        try
+        {
+            string toSpeak = "";
+
+            if (hoveredItem != null)
+            {
+                toSpeak = InventoryUtils.GetItemDetails(hoveredItem,
+                                                        hoverPrice: moneyAmountToDisplayAtBottom,
+                                                        extraItemToShowIndex: extraItemToShowIndex,
+                                                        extraItemToShowAmount: extraItemToShowAmount,
+                                                        customBuffs: buffIconsToDisplay);
+                toSpeak += (craftingIngredients is not null)
+                    ? $", {InventoryUtils.GetIngredientsFromRecipe(craftingIngredients)}"
+                    : "";
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(boldTitleText))
+                    toSpeak = $"{boldTitleText}, ";
+
+                if (text.ToString() == "???")
+                    toSpeak = Translator.Instance.Translate("common-unknown");
+                else
+                    toSpeak += text;
+            }
+
+            _tryHoverPatch = false;
+
+            // To prevent it from getting conflicted by two hover texts at the same time, two separate methods are used.
+            // For example, sometimes `Welcome to Pierre's` and the items in seeds shop get conflicted causing it to speak infinitely.
+
+            if (string.IsNullOrWhiteSpace(toSpeak)) return;
+
+            MainClass.ScreenReader.SayWithMenuChecker(toSpeak, true); // Menu Checker
+        }
+        catch (Exception e)
+        {
+            Log.Error($"[IClickableMenuPatch.DrawHoverTextPatch]: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
     private static void ExitThisMenuPatch(IClickableMenu __instance)
     {
         try
@@ -193,7 +251,7 @@ internal class IClickableMenuPatch : IPatch
         }
         catch (Exception e)
         {
-            Log.Error($"[IClickableMenuPatch.ExitThisMenuPatch] An error occurred in exit this menu patch:\n{e.Message}\n{e.StackTrace}");
+            Log.Error($"[IClickableMenuPatch.ExitThisMenuPatch]: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -244,6 +302,7 @@ internal class IClickableMenuPatch : IPatch
         TextBoxPatch.activeTextBoxes = "";
         CurrentMenu = null;
         ManuallyCallingDrawPatch = false;
-        justOpened = true;
+        _justOpened = true;
+        _tryHoverPatch = false;
     }
 }

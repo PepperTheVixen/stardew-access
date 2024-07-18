@@ -63,8 +63,9 @@ internal class ClickableComponentUtils
     }
 
     private static bool IsAcceptableField(FieldInfo x, HashSet<string> skipFieldNames) => !skipFieldNames.Contains(x.Name)
-        && (IsInstanceOfCC(x.FieldType) || (x.FieldType.IsGenericType && x.FieldType.GetGenericTypeDefinition() == typeof(List<>)
-                    && IsInstanceOfCC(x.FieldType.GetGenericArguments()[0])));
+        && x.FieldType.IsGenericType
+                ? x.FieldType.GetGenericTypeDefinition() == typeof(List<>) && IsInstanceOfCC(x.FieldType.GetGenericArguments()[0])
+                : IsInstanceOfCC(x.FieldType);
 
     private static bool IsInstanceOfCC(Type fieldType) => fieldType == typeof(ClickableComponent) || fieldType.IsSubclassOf(typeof(ClickableComponent));
 
