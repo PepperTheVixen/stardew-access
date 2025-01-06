@@ -61,6 +61,7 @@ public sealed class CATEGORY
         {"forageables", new CATEGORY("forageables")},
         {"furniture", new CATEGORY("furniture")},
         {"interactables", new CATEGORY("interactables")},
+        {"lights", new CATEGORY("lights")},
         {"machines", new CATEGORY("machines")},
         {"mine_items", new CATEGORY("mine_items")},
         {"monsters", new CATEGORY("monsters")},
@@ -145,6 +146,7 @@ public sealed class CATEGORY
     public static readonly CATEGORY Forageables = FromString("forageables");
     public static readonly CATEGORY Furniture = FromString("furniture");
     public static readonly CATEGORY Interactables = FromString("interactables");
+    public static readonly CATEGORY Lights = FromString("lights");
     public static readonly CATEGORY Machines = FromString("machines");
     public static readonly CATEGORY MineItems = FromString("mine_items");
     public static readonly CATEGORY Monsters = FromString("monsters");
