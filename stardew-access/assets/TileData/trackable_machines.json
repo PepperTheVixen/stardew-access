@@ -1,6 +1,8 @@
 [
   // Vanilla Machines
   // IDs can be searched from this site: https://mateusaquino.github.io/stardewids/
+  "(BC)HeavyFurnace",
+  "(BC)MiniForge",
   "(BC)Anvil",
   "(BC)10", // Bee House
   "(BC)90", // Bone Mill
